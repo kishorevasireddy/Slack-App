@@ -143,7 +143,7 @@ class SlackProjectStatusAPI:
         sheet1 = wb.add_sheet('Sheet 1')
         style = XFStyle()
         style.alignment.wrap = 1
-        headers = ['sno', 'User', 'Task name','Description','Priority', 'Precent Completed', 'Activity log']
+        headers = ['sno', 'User', 'Task Name','Task Description','Task Priority', 'Task Percent Completed', 'Activity Log']
 
         for ind, header in enumerate(headers):
             sheet1.write(0, ind, header)
