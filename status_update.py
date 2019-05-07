@@ -143,26 +143,33 @@ class SlackProjectStatusAPI:
         sheet1 = wb.add_sheet('Sheet 1')
         style = XFStyle()
         style.alignment.wrap = 1
-        headers = ['sno', 'User', 'Task name', 'Priority', 'Precent Completed', 'Activity log']
+        headers = ['sno', 'User', 'Task name','Description','Priority', 'Precent Completed', 'Activity log']
 
         for ind, header in enumerate(headers):
             sheet1.write(0, ind, header)
 
         serial_number = 1
+        serial_number1 = 0
         for user in status_messages:
+            print('User: '+user)
+            serial_number1 += 1
+            sheet1.write(serial_number, 0, serial_number1)
+            sheet1.write(serial_number, 1, users.get(user))
             tasks = status_messages.get(user)
             for task in tasks:
+                print('task : '+task)
                 percent_complete, level = tasks.get(task).get('percent_complete'), tasks.get(task).get('level')
 
                 activity = [e[0] + '-' + e[1] for e in activity_messages.get(user).get(task)]
                 activity = '\n'.join(activity)
                 # print(activity)
-                sheet1.write(serial_number, 0, serial_number)
-                sheet1.write(serial_number, 1, users.get(user))
+                # sheet1.write(serial_number, 0, serial_number)
+                # sheet1.write(serial_number, 1, users.get(user))
                 sheet1.write(serial_number, 2, task)
-                sheet1.write(serial_number, 3, level)
-                sheet1.write(serial_number, 4, percent_complete)
-                sheet1.write(serial_number, 5, activity, style)
+                # sheet1.write(serial_number, 3, 'xxx')
+                sheet1.write(serial_number, 4, level)
+                sheet1.write(serial_number, 5, percent_complete)
+                sheet1.write(serial_number, 6, activity, style)
                 serial_number += 1
                 # print('user: ', users.get(user), 'task name: ', task, 'percent_complete: ', percent_complete, 'level: ',
                 #       level, 'activity', activity)
@@ -180,9 +187,9 @@ class SlackProjectStatusAPI:
         subject = 'Status Update'
         message = '''
         Dear Admin,\n
-        Please look at the status update for \n more information in the attachement for all \n projects and tasks associated. \n
+        Please look at the status update for more information in the attachement for all projects and tasks associated. \n
         Thanks, \n
-        Slack Bot \n
+        Slack\n
         '''
         file_location = 'status_update.xls'
 
@@ -234,4 +241,5 @@ channel_name = "status-test"
 
 projectstatus = SlackProjectStatusAPI(channel_name, slack_token)
 projectstatus.process_messages()
+
 
