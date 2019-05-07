@@ -1,5 +1,5 @@
 # slackbot
-A slack bot to send status
+A Slack bot to send status reports.
 
 In a software development project, tasks and activities my be tracked for project reporting with formal tools (such as JIRA, BugZilla, Apache Bloodhound, Trac, and many others). These tools may in fact cover other use cases: bug tracking, issue tracking, ticket management, etc.
 
