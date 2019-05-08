@@ -195,7 +195,7 @@ class SlackProjectStatusAPI:
         :return:
         '''
         email = 'kishorepython90@gmail.com'
-        password = 'Kishore1571991'
+        password = 'xxxxxxxxx'
         send_to_email = 'kishorepython90@gmail.com'
         subject = 'Status Update'
         message = '''
@@ -246,7 +246,7 @@ class SlackProjectStatusAPI:
         self.send_email()
         logging.info('Processed status messages')
 
-slack_token = "xoxp-624588002999-624922980694-622225453108-16927ef3eb502a617d7bee2636b90151"
+slack_token = "xoxp-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 channel_name = "status-test"
 
 
