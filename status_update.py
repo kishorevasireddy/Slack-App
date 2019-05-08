@@ -1,9 +1,9 @@
 import os
-from datetime import datetime
+import datetime
 from slackclient import SlackClient
 from xlwt import Workbook, XFStyle
 import email, smtplib, ssl
-
+import time
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -60,8 +60,12 @@ class SlackProjectStatusAPI:
         Get history of messages by users and project
         :return:
         '''
+        current_time = datetime.datetime.now()
+        past_time = current_time - datetime.timedelta(hours=23, minutes=50)
+        latest = time.mktime(current_time.timetuple())
+        oldest = time.mktime(past_time.timetuple())
         channel_id = self.get_channel_id()
-        history = self.sc.api_call("channels.history", channel=channel_id)
+        history = self.sc.api_call("channels.history", channel=channel_id, oldest=oldest, latest=latest)
         # print(history)
 
         levels = {
@@ -74,15 +78,18 @@ class SlackProjectStatusAPI:
         for message in history['messages']:
             txt, user = message.get('text'), message.get('user')
             count_colon = len(txt.split(':'))
-            if count_colon == 3:
+            if count_colon == 4:
                 # print('txt',txt)
-                task_name, level, percent_complete = txt.split(':')
+                task_name, description, level, percent_complete = txt.split(':')
                 # print(user,task_name,level,percent_complete)
                 if user not in status_messages:
                     status_messages[user] = {}
 
                 if task_name not in status_messages.get(user):
                     status_messages[user][task_name] = {}
+
+                if 'description' not in status_messages.get(user).get(task_name):
+                    status_messages[user][task_name]['description'] = description
 
                 get_level = status_messages.get(user).get(task_name).get('level', None)
 
@@ -103,17 +110,23 @@ class SlackProjectStatusAPI:
         :return:
 
         '''
+        current_time = datetime.datetime.now()
+        past_time = current_time - datetime.timedelta(hours=23, minutes=50)
+        latest = time.mktime(current_time.timetuple())
+        oldest = time.mktime(past_time.timetuple())
+
         activity_messages = {}
         channel_id = self.get_channel_id()
-        history = self.sc.api_call("channels.history", channel=channel_id)
+        history = self.sc.api_call("channels.history", channel=channel_id, oldest=oldest, latest=latest)
+
         for message in history['messages']:
             # print(message)
             txt, user = message.get('text'), message.get('user')
             count_colon = len(txt.split(':'))
-            if count_colon == 3:
+            if count_colon == 4:
                 # print('txt',txt)
-                task_name, level, percent_complete = txt.split(':')
-                time_stamp = datetime.fromtimestamp(float(message.get('ts'))).strftime('%m-%d-%Y %H:%M')
+                task_name, description, level, percent_complete = txt.split(':')
+                time_stamp = datetime.datetime.fromtimestamp(float(message.get('ts'))).strftime('%m-%d-%Y %H:%M')
 
                 # print(user,task_name,level,percent_complete)
                 if user not in activity_messages:
@@ -143,36 +156,36 @@ class SlackProjectStatusAPI:
         sheet1 = wb.add_sheet('Sheet 1')
         style = XFStyle()
         style.alignment.wrap = 1
-        headers = ['sno', 'User', 'Task Name','Task Description','Task Priority', 'Task Percent Completed', 'Activity Log']
+        headers = ['sno', 'User', 'Task name', 'description', 'Priority', 'Precent Completed', 'Activity log']
 
         for ind, header in enumerate(headers):
             sheet1.write(0, ind, header)
 
         serial_number = 1
-        serial_number1 = 0
+        serial_number_dup = 1
         for user in status_messages:
-            print('User: '+user)
-            serial_number1 += 1
-            sheet1.write(serial_number, 0, serial_number1)
-            sheet1.write(serial_number, 1, users.get(user))
+            sheet1.write(serial_number_dup, 0, serial_number)
+            sheet1.write(serial_number_dup, 1, users.get(user))
             tasks = status_messages.get(user)
             for task in tasks:
-                print('task : '+task)
                 percent_complete, level = tasks.get(task).get('percent_complete'), tasks.get(task).get('level')
-
+                desc = tasks.get(task).get('description')
+                print(activity_messages)
+                print('task', task, 'user', user)
                 activity = [e[0] + '-' + e[1] for e in activity_messages.get(user).get(task)]
                 activity = '\n'.join(activity)
-                # print(activity)
-                # sheet1.write(serial_number, 0, serial_number)
-                # sheet1.write(serial_number, 1, users.get(user))
-                sheet1.write(serial_number, 2, task)
-                # sheet1.write(serial_number, 3, 'xxx')
-                sheet1.write(serial_number, 4, level)
-                sheet1.write(serial_number, 5, percent_complete)
-                sheet1.write(serial_number, 6, activity, style)
-                serial_number += 1
-                # print('user: ', users.get(user), 'task name: ', task, 'percent_complete: ', percent_complete, 'level: ',
-                #       level, 'activity', activity)
+                print(activity)
+
+                sheet1.write(serial_number_dup, 2, task)
+                sheet1.write(serial_number_dup, 3, desc)
+
+                sheet1.write(serial_number_dup, 4, level)
+                sheet1.write(serial_number_dup, 5, percent_complete)
+                sheet1.write(serial_number_dup, 6, activity, style)
+                serial_number_dup += 1
+            serial_number += 1
+            # print('user: ', users.get(user), 'task name: ', task, 'percent_complete: ', percent_complete, 'level: ',
+            #       level, 'activity', activity)
 
         wb.save('status_update.xls')
 
@@ -187,9 +200,9 @@ class SlackProjectStatusAPI:
         subject = 'Status Update'
         message = '''
         Dear Admin,\n
-        Please look at the status update for more information in the attachement for all projects and tasks associated. \n
+        Please look at the status update for \n more information in the attachement for all \n projects and tasks associated. \n
         Thanks, \n
-        Slack\n
+        Slack Bot \n
         '''
         file_location = 'status_update.xls'
 
@@ -225,21 +238,17 @@ class SlackProjectStatusAPI:
         Send email to the admin
         :return: None
         '''
-        try:
-            users = self.get_users()
-            status_messages = self.get_history_messages()
-            activity_messages = self.get_activity_messages()
-            self.create_work_book(users, status_messages, activity_messages)
-            self.send_email()
-            logging.info('Processed status messages')
-        except Exception as e:
-            logging.error('e')
-
+        # try:
+        users = self.get_users()
+        status_messages = self.get_history_messages()
+        activity_messages = self.get_activity_messages()
+        self.create_work_book(users, status_messages, activity_messages)
+        self.send_email()
+        logging.info('Processed status messages')
 
 slack_token = "xoxp-624588002999-624922980694-622225453108-16927ef3eb502a617d7bee2636b90151"
 channel_name = "status-test"
 
+
 projectstatus = SlackProjectStatusAPI(channel_name, slack_token)
 projectstatus.process_messages()
-
-
